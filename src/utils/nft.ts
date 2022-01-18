@@ -63,10 +63,11 @@ export function getMediaType(nft: Nft) {
     return NftMediaType.VIDEO;
   }
 
-  if (!nft.animation_url) {
+  const animationUrl = nft.animation_url || nft.animation_original_url;
+
+  if (!animationUrl) {
     return NftMediaType.IMAGE;
   }
 
-  // OpenSea
-  return getMediaTypeForAssetUrl(nft.animation_url);
+  return getMediaTypeForAssetUrl(animationUrl);
 }
