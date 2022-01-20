@@ -1,0 +1,202 @@
+scalar DateTime
+
+interface Node {
+  id: ID!
+}
+
+type GalleryUser implements Node {
+  id: ID!
+  username: String
+  bio: String
+  wallets: [Wallet]
+}
+
+type Wallet implements Node {
+  id: ID!
+  address: String
+  # TODO: Do we paginate these currently?
+  nfts: [Nft]
+}
+
+union AddressOrGalleryUser = GalleryUser | Wallet
+
+interface NftInterface implements Node {
+  id: ID!
+  owner: AddressOrGalleryUser
+}
+
+type ImageNft implements NftInterface & Node {
+  id: ID!
+  owner: AddressOrGalleryUser
+  dummy: Boolean
+}
+
+type VideoNft implements NftInterface & Node {
+  id: ID!
+  owner: AddressOrGalleryUser
+  dummy: Boolean
+}
+
+union Nft = ImageNft | VideoNft
+
+type GalleryCollectionLayout {
+  columns: Int
+}
+
+type GalleryCollection implements Node {
+  id: ID!
+  version: Int
+  title: String
+  description: String
+  gallery: Gallery
+  layout: GalleryCollectionLayout
+  hidden: Boolean
+  nfts: [Nft]
+}
+
+type Gallery implements Node {
+  id: ID!
+  owner: GalleryUser
+  collections: [GalleryCollection]
+}
+
+type NotFound {
+  message: String!
+}
+
+union GalleryByUsernamePayload = GalleryCollection | NotFound
+
+type MembershipTierOwner implements Node {
+  id: ID!
+
+  # We need both of these since we want to know the owning address as well as
+  # the owning gallery user. We cannot pull the address off of the owner since
+  # they might have multiple addresses associated with their account.
+  ownerAddress: String
+  owner: AddressOrGalleryUser
+
+  # TODO: Maybe we only want Image NFTs here if the UI doesn't play well with other types.
+  previewNfts: [Nft]
+}
+
+type MembershipTier implements Node {
+  id: ID!
+  name: String
+  assetUrl: String
+  createdAt: DateTime
+  tokenId: String
+  owners: [MembershipTierOwner]
+}
+
+type SessionExpired {
+  message: String!
+}
+
+type MissingCookie {
+  message: String!
+}
+
+# We have this extra type in case we need to stick authed data
+# in here one day.
+type ViewerGallery {
+  gallery: Gallery
+}
+
+type Viewer {
+  user: GalleryUser
+  wallets: [Wallet]
+  viewerGallery: ViewerGallery
+}
+
+union ViewerPayload = Viewer | MissingCookie | SessionExpired
+
+type Query {
+  viewer: ViewerPayload
+  galleryByUsername(username: String): GalleryByUsernamePayload
+  membershipTiers: [MembershipTier]
+}
+
+input GalleryCollectionLayoutInput {
+  columns: Int
+}
+
+input CreateCollectionInput {
+  galleryId: ID!
+  name: String
+  collectorsNote: String
+  nfts: [ID!]!
+  layout: GalleryCollectionLayoutInput!
+}
+
+type CreateCollectionPayload {
+  gallery: Gallery
+}
+
+type DeleteCollectionPayload {
+  gallery: Gallery
+}
+
+input UpdateCollectionInfoInput {
+  collectionId: ID!
+  name: String
+  collectorsNote: String
+}
+
+type UpdateCollectionInfoPayload {
+  collection: GalleryCollection
+}
+
+input UpdateCollectionNftsInput {
+  collectionId: ID!
+  nfts: [ID!]!
+}
+
+type UpdateCollectionNftsPayload {
+  collection: GalleryCollection
+}
+
+input UpdateGalleryCollectionsInput {
+  galleryId: ID!
+  collections: [ID!]!
+}
+
+type UpdateGalleryCollectionsPayload {
+  gallery: Gallery
+}
+
+type RemoveUserAddressPayload {
+  viewer: Viewer
+}
+
+input UpdateUserInfoInput {
+  username: String
+  bio: String
+}
+
+type UpdateUserInfoPayload {
+  viewer: Viewer
+}
+
+type RefreshOpenSeaNftsPayload {
+  wallet: Wallet
+}
+
+type Mutation {
+  # Collection Mutations
+  createCollection(input: CreateCollectionInput!): CreateCollectionPayload
+  deleteCollection(collectionId: Int): DeleteCollectionPayload
+  updateCollectionInfo(input: UpdateCollectionInfoInput!): UpdateCollectionInfoPayload
+  updateCollectionNfts(input: UpdateCollectionNftsInput!): UpdateCollectionNftsPayload
+  updateCollectionNfts(input: UpdateCollectionNftsInput!): UpdateCollectionNftsPayload
+
+  # Gallery Mutations
+  updateGalleryCollections(input: UpdateGalleryCollectionsInput): UpdateGalleryCollectionsPayload
+
+  # User Mutations
+  removeUserAddress(address: String!): RemoveUserAddressPayload
+  updateUserInfo(input: UpdateUserInfoInput): UpdateUserInfoPayload
+  # We don't know the auth situation until we speak to Kaito
+  # addUserAddress()
+
+  refreshOpenSeaNfts: RefreshOpenSeaNftsPayload
+}
