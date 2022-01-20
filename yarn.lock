@@ -2243,6 +2243,14 @@
   dependencies:
     "@types/react" "*"
 
+"@types/react-relay@^13.0.0":
+  version "13.0.0"
+  resolved "https://registry.yarnpkg.com/@types/react-relay/-/react-relay-13.0.0.tgz#906a63fcb618e597c884545d89017855f4c73a40"
+  integrity sha512-1m1ngK2AUAzxw9gM+KUKJSley3Ih94uyErsoTx8ILethlPbWvm4EFmlxdVir5qkHDn98cMEKwuUEkidrIcTGVQ==
+  dependencies:
+    "@types/react" "*"
+    "@types/relay-runtime" "*"
+
 "@types/react-transition-group@^4.4.4":
   version "4.4.4"
   resolved "https://registry.yarnpkg.com/@types/react-transition-group/-/react-transition-group-4.4.4.tgz#acd4cceaa2be6b757db61ed7b432e103242d163e"
@@ -2267,6 +2275,11 @@
     "@types/prop-types" "*"
     "@types/scheduler" "*"
     csstype "^3.0.2"
+
+"@types/relay-runtime@*", "@types/relay-runtime@^13.0.0":
+  version "13.0.0"
+  resolved "https://registry.yarnpkg.com/@types/relay-runtime/-/relay-runtime-13.0.0.tgz#d0009275522ff826f2e4dab40419f2db58417ecf"
+  integrity sha512-yzv6F8EZPWA2rtfFP2qMluS8tsz1q4lfdYxLegCshdAjX5uqxTR2pAliATj9wrzD6OMZF4fl9aU+Y+zmSfm2EA==
 
 "@types/scheduler@*":
   version "0.16.2"
@@ -8266,6 +8279,11 @@ regjsparser@^0.7.0:
   integrity sha512-A4pcaORqmNMDVwUjWoTzuhwMGpP+NykpfqAsEgI1FSH/EzC7lrN5TMd+kN8YCovX+jMpu8eaqXgXPCa0g8FQNQ==
   dependencies:
     jsesc "~0.5.0"
+
+relay-compiler@^13.0.1:
+  version "13.0.1"
+  resolved "https://registry.yarnpkg.com/relay-compiler/-/relay-compiler-13.0.1.tgz#09c713647aa7e1d8cf3de9f7fb4ee6a76b32cf26"
+  integrity sha512-C/qJ7IdfZ140b9JaNpuAP6WhV/Odt/tIq4sUZoTwsaOlhs+1Zu3fvIOoWKTnZT5PC6krRuw1hD7GSX6/paVpTQ==
 
 remark-parse@^10.0.0:
   version "10.0.0"
