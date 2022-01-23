@@ -9,6 +9,8 @@ type GalleryUser implements Node {
   username: String
   bio: String
   wallets: [Wallet]
+  gallery: Gallery
+  isAuthenticatedUser: Boolean
 }
 
 type Wallet implements Node {
@@ -22,22 +24,33 @@ union AddressOrGalleryUser = GalleryUser | Wallet
 
 interface NftInterface implements Node {
   id: ID!
+  name: String
+  tokenCollectionName: String
   owner: AddressOrGalleryUser
 }
 
 type ImageNft implements NftInterface & Node {
   id: ID!
+  name: String
+  tokenCollectionName: String
   owner: AddressOrGalleryUser
-  dummy: Boolean
+  imageUrl: String
 }
 
 type VideoNft implements NftInterface & Node {
   id: ID!
+  name: String
+  tokenCollectionName: String
   owner: AddressOrGalleryUser
-  dummy: Boolean
 }
 
 union Nft = ImageNft | VideoNft
+
+type GalleryNft {
+  id: ID!
+  nft: Nft
+  collection: GalleryCollection
+}
 
 type GalleryCollectionLayout {
   columns: Int
@@ -46,12 +59,12 @@ type GalleryCollectionLayout {
 type GalleryCollection implements Node {
   id: ID!
   version: Int
-  title: String
-  description: String
+  name: String
+  collectorsNote: String
   gallery: Gallery
   layout: GalleryCollectionLayout
   hidden: Boolean
-  nfts: [Nft]
+  nfts: [GalleryNft]
 }
 
 type Gallery implements Node {
@@ -64,7 +77,7 @@ type NotFound {
   message: String!
 }
 
-union GalleryByUsernamePayload = GalleryCollection | NotFound
+union GalleryByUsernamePayload = Gallery | NotFound
 
 type MembershipTierOwner implements Node {
   id: ID!
@@ -110,9 +123,11 @@ type Viewer {
 
 union ViewerPayload = Viewer | MissingCookie | SessionExpired
 
+union GalleryByUserPayload = GalleryUser | NotFound
+
 type Query {
   viewer: ViewerPayload
-  galleryByUsername(username: String): GalleryByUsernamePayload
+  userByUsername(username: String): GalleryByUserPayload
   membershipTiers: [MembershipTier]
 }
 

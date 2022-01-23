@@ -1,5 +1,6 @@
 module.exports = {
   src: './',
-  schema: './schema.graphql',
-  artifactDirectory: './__generated__',
+  schema: 'schema.graphql',
+  language: 'typescript',
+  artifactDirectory: '__generated__',
 };

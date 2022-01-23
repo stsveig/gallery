@@ -1,44 +1,56 @@
 import { contentSize } from 'components/core/breakpoints';
 import styled from 'styled-components';
 import Spacer from 'components/core/Spacer/Spacer';
-import useUser, { usePossiblyAuthenticatedUser } from 'hooks/api/users/useUser';
-import useGalleries from 'hooks/api/galleries/useGalleries';
 import NotFound from 'scenes/NotFound/NotFound';
-import UserGalleryCollections from './UserGalleryCollections';
 import UserGalleryHeader from './UserGalleryHeader';
-import EmptyGallery from './EmptyGallery';
+import { graphql, useLazyLoadQuery } from 'react-relay';
+import { UserGalleryQuery } from '../../../__generated__/UserGalleryQuery.graphql';
+import EmptyGallery from 'scenes/UserGalleryPage/EmptyGallery';
+import UserGalleryCollections from 'scenes/UserGalleryPage/UserGalleryCollections';
 
 type Props = {
-  username?: string;
+  username: string;
 };
 
 function UserGallery({ username }: Props) {
-  const user = useUser({ username });
-  const [gallery] = useGalleries({ userId: user?.id ?? '' }) ?? [];
-  const authenticatedUser = usePossiblyAuthenticatedUser();
+  const { userByUsername } = useLazyLoadQuery<UserGalleryQuery>(
+    graphql`
+      query UserGalleryQuery($username: String!) {
+        userByUsername(username: $username) {
+          __typename
+          ... on NotFound {
+            message
+          }
+          ... on GalleryUser {
+            id
+            gallery {
+              ...UserGalleryCollectionsFragment
+            }
+            ...UserGalleryHeaderFragment
+          }
+        }
+      }
+    `,
+    { username }
+  );
 
-  if (!user) {
+  if (userByUsername?.__typename !== 'GalleryUser' || userByUsername.gallery === null) {
     return <NotFound />;
   }
 
-  const isAuthenticatedUsersPage = user.username === authenticatedUser?.username;
+  const collectionsView = <UserGalleryCollections galleryRef={userByUsername.gallery} />;
 
-  const collectionsView = gallery ? (
-    <UserGalleryCollections
-      collections={gallery.collections}
-      isAuthenticatedUsersPage={isAuthenticatedUsersPage}
-    />
-  ) : (
-    <EmptyGallery message="This user has not set up their gallery yet." />
-  );
+  if (userByUsername?.__typename === 'GalleryUser') {
+    return (
+      <StyledUserGallery>
+        <Spacer height={32} />
+        <UserGalleryHeader userRef={userByUsername} />
+        {collectionsView}
+      </StyledUserGallery>
+    );
+  }
 
-  return (
-    <StyledUserGallery>
-      <Spacer height={32} />
-      <UserGalleryHeader username={user.username} bio={user.bio} />
-      {collectionsView}
-    </StyledUserGallery>
-  );
+  return <NotFound />;
 }
 
 const StyledUserGallery = styled.div`

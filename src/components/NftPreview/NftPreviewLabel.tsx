@@ -1,18 +1,31 @@
 import colors from 'components/core/colors';
 import styled from 'styled-components';
 import { BodyRegular } from 'components/core/Text/Text';
-import { Nft } from 'types/Nft';
+import { graphql, useFragment } from 'react-relay';
+import { NftPreviewLabel$key } from '../../../__generated__/NftPreviewLabel.graphql';
 
 type Props = {
-  nft: Nft;
+  nftRef: NftPreviewLabel$key;
   className?: string;
 };
 
-function NftPreviewLabel({ nft, className }: Props) {
+function NftPreviewLabel({ nftRef, className }: Props) {
+  const { name, tokenCollectionName } = useFragment(
+    graphql`
+      fragment NftPreviewLabel on Nft {
+        ... on NftInterface {
+          name
+          tokenCollectionName
+        }
+      }
+    `,
+    nftRef
+  );
+
   return (
     <StyledNftPreviewLabel className={className}>
-      <StyledBodyRegular color={colors.white}>{nft.name}</StyledBodyRegular>
-      <StyledBodyRegular color={colors.white}>{nft.token_collection_name}</StyledBodyRegular>
+      <StyledBodyRegular color={colors.white}>{name}</StyledBodyRegular>
+      <StyledBodyRegular color={colors.white}>{tokenCollectionName}</StyledBodyRegular>
     </StyledNftPreviewLabel>
   );
 }

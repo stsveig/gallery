@@ -5,14 +5,25 @@ import { Subdisplay, BodyRegular } from 'components/core/Text/Text';
 import Spacer from 'components/core/Spacer/Spacer';
 import colors from 'components/core/colors';
 import Markdown from 'components/core/Markdown/Markdown';
+import { graphql, useFragment } from 'react-relay';
+import { UserGalleryHeaderFragment$key } from '../../../__generated__/UserGalleryHeaderFragment.graphql';
 
 type Props = {
-  username: string;
-  bio: string;
+  userRef: UserGalleryHeaderFragment$key;
 };
 
-function UserGalleryHeader({ username, bio }: Props) {
-  const unescapedBio = useMemo(() => unescape(bio), [bio]);
+function UserGalleryHeader({ userRef }: Props) {
+  const { username, bio } = useFragment(
+    graphql`
+      fragment UserGalleryHeaderFragment on GalleryUser {
+        username
+        bio
+      }
+    `,
+    userRef
+  );
+
+  const unescapedBio = useMemo(() => unescape(bio ?? ''), [bio]);
 
   return (
     <StyledUserGalleryHeader>

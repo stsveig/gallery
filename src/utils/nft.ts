@@ -1,9 +1,26 @@
 import { NftMediaType } from 'components/core/enums';
 import { Nft } from 'types/Nft';
+import { readInlineData } from 'relay-runtime';
+import { graphql } from 'react-relay';
+import { nftGetResizedNftImageUrlWithFallbackFragment$key } from '../../__generated__/nftGetResizedNftImageUrlWithFallbackFragment.graphql';
 
 const FALLBACK_URL = 'https://i.ibb.co/q7DP0Dz/no-image.png';
 
-export function getResizedNftImageUrlWithFallback(nft: Nft, size = 288): string {
+export function getResizedNftImageUrlWithFallback(
+  nftRef: nftGetResizedNftImageUrlWithFallbackFragment$key,
+  size = 288
+): string {
+  const { imageUrl } = readInlineData(
+    graphql`
+      fragment nftGetResizedNftImageUrlWithFallbackFragment on ImageNft @inline {
+        imageUrl
+      }
+    `,
+    nftRef
+  );
+
+  return imageUrl ?? FALLBACK_URL;
+
   const {
     image_url,
     image_original_url,

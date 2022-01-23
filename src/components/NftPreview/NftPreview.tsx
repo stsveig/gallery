@@ -1,20 +1,19 @@
-import { LAYOUT_GAP_BREAKPOINTS } from 'constants/layout';
+import { DEFAULT_COLUMNS, LAYOUT_GAP_BREAKPOINTS } from 'constants/layout';
 import styled from 'styled-components';
 import breakpoints, { size } from 'components/core/breakpoints';
 import Gradient from 'components/core/Gradient/Gradient';
 import transitions from 'components/core/transitions';
 import { useCallback, useMemo } from 'react';
 import ShimmerProvider from 'contexts/shimmer/ShimmerContext';
-import { Nft } from 'types/Nft';
 import { useNavigateToUrl } from 'utils/navigate';
 import { useBreakpoint } from 'hooks/useWindowSize';
 import NftPreviewLabel from './NftPreviewLabel';
 import NftPreviewAsset from './NftPreviewAsset';
+import { graphql, useFragment } from 'react-relay';
+import { NftPreviewFragment$key } from '../../../__generated__/NftPreviewFragment.graphql';
 
 type Props = {
-  nft: Nft;
-  collectionId: string;
-  columns: number;
+  nftRef: NftPreviewFragment$key;
 };
 
 const SINGLE_COLUMN_NFT_WIDTH = 600;
@@ -29,14 +28,36 @@ const LAYOUT_DIMENSIONS: Record<number, number> = {
   6: 134,
 };
 
-function NftPreview({ nft, collectionId, columns }: Props) {
+function NftPreview({ nftRef }: Props) {
   const navigateToUrl = useNavigateToUrl();
+
+  const { collection, id, nft } = useFragment(
+    graphql`
+      fragment NftPreviewFragment on GalleryNft {
+        id
+        collection @required(action: THROW) {
+          id
+          layout {
+            columns
+          }
+        }
+
+        nft @required(action: THROW) {
+          ...NftPreviewLabel
+          ...NftPreviewAssetFragment
+        }
+      }
+    `,
+    nftRef
+  );
+
+  const columns = collection.layout?.columns ?? DEFAULT_COLUMNS;
 
   const handleNftClick = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
-      navigateToUrl(`${window.location.pathname}/${collectionId}/${nft.id}`, event);
+      navigateToUrl(`${window.location.pathname}/${collection.id}/${id}`, event);
     },
-    [collectionId, navigateToUrl, nft.id]
+    [collection.id, id, navigateToUrl]
   );
   const screenWidth = useBreakpoint();
 
@@ -47,13 +68,13 @@ function NftPreview({ nft, collectionId, columns }: Props) {
   );
 
   return (
-    <StyledNftPreview key={nft.id} columns={columns}>
+    <StyledNftPreview key={id} columns={columns}>
       <StyledLinkWrapper onClick={handleNftClick}>
         <ShimmerProvider>
           {/* // we'll request images at double the size of the element so that it looks sharp on retina */}
-          <NftPreviewAsset nft={nft} size={previewSize * 2} />
+          <NftPreviewAsset nftRef={nft} size={previewSize * 2} />
           <StyledNftFooter>
-            <StyledNftLabel nft={nft} />
+            <StyledNftLabel nftRef={nft} />
             <StyledGradient type="bottom" direction="down" />
           </StyledNftFooter>
         </ShimmerProvider>

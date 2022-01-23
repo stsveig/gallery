@@ -1,41 +1,41 @@
-import {
-  DEFAULT_COLUMNS,
-  LAYOUT_GAP_BREAKPOINTS,
-  MAX_COLUMNS,
-  MIN_COLUMNS,
-} from 'constants/layout';
+import { DEFAULT_COLUMNS, LAYOUT_GAP_BREAKPOINTS } from 'constants/layout';
 import styled from 'styled-components';
 import unescape from 'lodash.unescape';
 import colors from 'components/core/colors';
 import NftPreview from 'components/NftPreview/NftPreview';
-import { TitleSerif, BodyRegular } from 'components/core/Text/Text';
+import { BodyRegular, TitleSerif } from 'components/core/Text/Text';
 import Spacer from 'components/core/Spacer/Spacer';
 import breakpoints from 'components/core/breakpoints';
-import { Collection } from 'types/Collection';
 import { useMemo } from 'react';
 import Markdown from 'components/core/Markdown/Markdown';
+import { graphql, useFragment } from 'react-relay';
+import { UserGalleryCollectionFragment$key } from '../../../__generated__/UserGalleryCollectionFragment.graphql';
 
 type Props = {
-  collection: Collection;
+  collectionRef: UserGalleryCollectionFragment$key;
 };
 
-export function isValidColumns(columns: number) {
-  return columns >= MIN_COLUMNS && columns <= MAX_COLUMNS;
-}
-
-function UserGalleryCollection({ collection }: Props) {
-  const unescapedCollectionName = useMemo(() => unescape(collection.name), [collection.name]);
-  const unescapedCollectorsNote = useMemo(
-    () => unescape(collection.collectors_note),
-    [collection.collectors_note]
+function UserGalleryCollection({ collectionRef }: Props) {
+  const { name, collectorsNote, layout, nfts } = useFragment(
+    graphql`
+      fragment UserGalleryCollectionFragment on GalleryCollection {
+        name
+        collectorsNote
+        layout {
+          columns
+        }
+        nfts {
+          id
+          ...NftPreviewFragment
+        }
+      }
+    `,
+    collectionRef
   );
-  const columns = useMemo(() => {
-    if (collection?.layout?.columns && isValidColumns(collection.layout.columns)) {
-      return collection.layout.columns;
-    }
 
-    return DEFAULT_COLUMNS;
-  }, [collection.layout]);
+  const unescapedCollectionName = useMemo(() => unescape(name ?? ''), [name]);
+  const unescapedCollectorsNote = useMemo(() => unescape(collectorsNote ?? ''), [collectorsNote]);
+  const columns = layout?.columns ?? DEFAULT_COLUMNS;
 
   return (
     <StyledCollectionWrapper>
@@ -51,9 +51,13 @@ function UserGalleryCollection({ collection }: Props) {
         )}
       </StyledCollectionHeader>
       <StyledCollectionNfts columns={columns}>
-        {collection.nfts.map((nft) => (
-          <NftPreview key={nft.id} nft={nft} collectionId={collection.id} columns={columns} />
-        ))}
+        {nfts?.map((nft) => {
+          if (!nft) {
+            return null;
+          }
+
+          return <NftPreview key={nft.id} nftRef={nft} />;
+        })}
       </StyledCollectionNfts>
     </StyledCollectionWrapper>
   );
