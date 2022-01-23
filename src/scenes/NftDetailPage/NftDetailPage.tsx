@@ -12,6 +12,7 @@ import NftDetailAsset from './NftDetailAsset';
 import NftDetailText from './NftDetailText';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import { useAuthenticatedUsername } from 'src/hooks/api/users/useUser';
 import { useCanGoBack } from 'contexts/navigation/GalleryNavigationProvider';
 
 type Props = {
@@ -23,6 +24,9 @@ function NftDetailPage({ nftId }: Props) {
   const canGoBack = useCanGoBack();
 
   const username = window.location.pathname.split('/')[1];
+  const authenticatedUsername = useAuthenticatedUsername();
+
+  const userOwnsAsset = authenticatedUsername === username;
 
   const handleBackClick = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
@@ -73,7 +77,7 @@ function NftDetailPage({ nftId }: Props) {
         )} */}
           <StyledContentContainer>
             <ShimmerProvider>
-              <NftDetailAsset nft={nft} />
+              <NftDetailAsset nft={nft} userOwnsAsset={userOwnsAsset} />
             </ShimmerProvider>
             <NftDetailText nft={nft} />
           </StyledContentContainer>
@@ -132,6 +136,11 @@ const StyledContentContainer = styled.div`
   @media only screen and ${breakpoints.desktop} {
     width: initial;
   }
+`;
+
+const StyledAssetAndNote = styled.div`
+  display: flex;
+  flex-direction: column;
 `;
 
 const StyledNftDetailPage = styled(Page)`
