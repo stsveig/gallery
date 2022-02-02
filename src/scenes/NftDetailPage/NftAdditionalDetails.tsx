@@ -5,10 +5,13 @@ import Spacer from 'components/core/Spacer/Spacer';
 import { BodyRegular } from 'components/core/Text/Text';
 import { useCallback, useState } from 'react';
 import styled from 'styled-components';
-import { Nft } from 'types/Nft';
+// import { Nft } from 'types/Nft';
+
+import { graphql, useFragment } from 'react-relay';
+import { NftAdditionalDetailsFragment$key } from '../../../__generated__/NftAdditionalDetailsFragment.graphql';
 
 type Props = {
-  nft: Nft;
+  nftRef: NftAdditionalDetailsFragment$key;
 };
 
 // The backend converts all token IDs to hexadecimals; here, we convert back
@@ -23,9 +26,11 @@ const hexHandler = (str: string) => {
   return d;
 };
 
-const getOpenseaExternalUrl = (nft: Nft) => {
-  const contractAddress = nft.asset_contract.address;
-  const tokenId = hexHandler(nft.opensea_token_id);
+// sorry Terence for types
+const getOpenseaExternalUrl = (contractAddress: string, openseaTokenId: string) => {
+  // const getOpenseaExternalUrl = (nft: Nft) => {
+  // const contractAddress = nft.asset_contract.address;
+  const tokenId = hexHandler(openseaTokenId);
 
   // Allows us to get referral credit
   const ref = GALLERY_OS_ADDRESS;
@@ -35,14 +40,29 @@ const getOpenseaExternalUrl = (nft: Nft) => {
 
 const GALLERY_OS_ADDRESS = '0x8914496dc01efcc49a2fa340331fb90969b6f1d2';
 
-function NftAdditionalDetails({ nft }: Props) {
+function NftAdditionalDetails({ nftRef }: Props) {
   const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
   const handleToggleClick = useCallback(() => {
     setShowAdditionalDetails((value) => !value);
   }, []);
 
+  const nft = useFragment(
+    graphql`
+      fragment NftAdditionalDetailsFragment on NftInterface {
+        __typename
+        assetContract {
+          address
+        }
+        openseaTokenId
+        openseaExternalUrl
+        externalUrl
+      }
+    `,
+    nftRef
+  );
+
   // Check for contract address befor rendering additional details
-  const hasContractAddress = nft.asset_contract?.address !== '';
+  const hasContractAddress = nft.assetContract?.address !== '';
 
   return (
     <StyledNftAdditionalDetails>
@@ -57,29 +77,40 @@ function NftAdditionalDetails({ nft }: Props) {
             <>
               <BodyRegular color={colors.gray50}>Contract address</BodyRegular>
               <StyledLink
-                href={`https://etherscan.io/address/${nft.asset_contract.address}`}
+                href={`https://etherscan.io/address/${nft.assetContract?.address}`}
                 target="_blank"
                 rel="noreferrer"
               >
-                <BodyRegular>{nft.asset_contract.address}</BodyRegular>
+                <BodyRegular>{nft.assetContract?.address}</BodyRegular>
               </StyledLink>
             </>
           )}
           <Spacer height={16} />
           <BodyRegular color={colors.gray50}>Token ID</BodyRegular>
-          <BodyRegular>{hexHandler(nft.opensea_token_id)}</BodyRegular>
+          <BodyRegular>{hexHandler(nft.openseaTokenId ?? '')}</BodyRegular>
           <Spacer height={16} />
           <StyledLinkContainer>
             {hasContractAddress && (
               <>
-                <StyledLink href={getOpenseaExternalUrl(nft)} target="_blank" rel="noreferrer">
+                {/* TODO: plz take it to the backend */}
+                <StyledLink
+                  href={
+                    nft.openseaExternalUrl ??
+                    getOpenseaExternalUrl(
+                      nft.assetContract?.address ?? '',
+                      nft.openseaTokenId ?? ''
+                    )
+                  }
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   <ActionText color={colors.gray50}>View on OpenSea</ActionText>
                 </StyledLink>
                 <Spacer width={16} />
               </>
             )}
-            {nft?.external_url !== '' && (
-              <StyledLink href={nft.external_url} target="_blank" rel="noreferrer">
+            {nft?.externalUrl !== '' && (
+              <StyledLink href={nft.externalUrl ?? ''} target="_blank" rel="noreferrer">
                 <ActionText color={colors.gray50}>More Info</ActionText>
               </StyledLink>
             )}

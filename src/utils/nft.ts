@@ -4,6 +4,18 @@ import { GOOGLE_CONTENT_IMG_URL } from './regex';
 
 const FALLBACK_URL = 'https://i.ibb.co/q7DP0Dz/no-image.png';
 
+export function getResizedImageUrlWithFallback(imageUrl: string | null, size = 288): string {
+  if (imageUrl?.includes('googleusercontent')) {
+    if (imageUrl.match(GOOGLE_CONTENT_IMG_URL)) {
+      return imageUrl.replace(GOOGLE_CONTENT_IMG_URL, `=w${size}`);
+    }
+
+    return `${imageUrl}=w${size}`;
+  }
+
+  return imageUrl || FALLBACK_URL;
+}
+
 export function getResizedNftImageUrlWithFallback(nft: Nft, size = 288): string {
   const {
     image_url,

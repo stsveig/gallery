@@ -1,10 +1,12 @@
 import { useSetContentIsLoaded } from 'contexts/shimmer/ShimmerContext';
 import styled from 'styled-components';
-import { Nft } from 'types/Nft';
+// import { Nft } from 'types/Nft';
 import { useEffect } from 'react';
+import { graphql, useFragment } from 'react-relay';
+import { NftDetailModelFragment$key } from '../../../__generated__/NftDetailModelFragment.graphql';
 
 type Props = {
-  nft: Nft;
+  nftRef: NftDetailModelFragment$key;
 };
 
 // TODO: Clean this up once fixed
@@ -25,13 +27,22 @@ interface ModelViewerJSX {
   class: string;
 }
 
-function NftDetailModel({ nft }: Props) {
+function NftDetailModel({ nftRef }: Props) {
   const setContentIsLoaded = useSetContentIsLoaded();
   useEffect(setContentIsLoaded, [setContentIsLoaded]);
 
+  const { modelUrl } = useFragment(
+    graphql`
+      fragment NftDetailModelFragment on ThreeDModelNft {
+        modelUrl
+      }
+    `,
+    nftRef
+  );
+
   return (
     <StyledNftDetailModel>
-      <model-viewer class="model-viewer" auto-rotate camera-controls src={nft.animation_url} />
+      <model-viewer class="model-viewer" auto-rotate camera-controls src={modelUrl ?? ''} />
     </StyledNftDetailModel>
   );
 }

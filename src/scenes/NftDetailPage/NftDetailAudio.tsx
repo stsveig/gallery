@@ -1,16 +1,31 @@
 import styled from 'styled-components';
 import ImageWithLoading from 'components/ImageWithLoading/ImageWithLoading';
-import { Nft } from 'types/Nft';
+// import { Nft } from 'types/Nft';
+import { useFragment } from 'react-relay';
+import { NftDetailAudioFragment$key } from '../../../__generated__/NftDetailAudioFragment.graphql';
 
 type Props = {
-  nft: Nft;
+  nftRef: NftDetailAudioFragment$key;
 };
 
-function NftDetailAudio({ nft }: Props) {
+const FALLBACK_URL = 'https://i.ibb.co/q7DP0Dz/no-image.png';
+
+function NftDetailAudio({ nftRef }: Props) {
+  const { imageUrl, audioUrl, name } = useFragment(
+    graphql`
+      fragment NftDetailAudioFragment on AudioNft {
+        audioUrl
+        name
+        imageUrl
+      }
+    `,
+    nftRef
+  );
+
   return (
     <StyledAudioContainer>
-      <ImageWithLoading src={nft.image_url} alt={nft.name} />
-      <StyledAudio controls loop controlsList="nodownload" preload="none" src={nft.animation_url} />
+      <ImageWithLoading src={imageUrl ?? FALLBACK_URL} alt={name ?? ''} />
+      <StyledAudio controls loop controlsList="nodownload" preload="none" src={audioUrl ?? ''} />
     </StyledAudioContainer>
   );
 }

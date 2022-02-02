@@ -4,22 +4,41 @@ import Spacer from 'components/core/Spacer/Spacer';
 import colors from 'components/core/colors';
 import breakpoints, { size } from 'components/core/breakpoints';
 import styled from 'styled-components';
-import { Nft, Owner } from 'types/Nft';
+// import { Nft, Owner } from 'types/Nft';
 import Markdown from 'components/core/Markdown/Markdown';
-import { useMemo } from 'react';
+// import { useMemo } from 'react';
 import NftAdditionalDetails from './NftAdditionalDetails';
 import { fullPageHeightWithoutNavbarAndFooter } from 'components/core/Page/constants';
 import { useBreakpoint } from 'hooks/useWindowSize';
+import { graphql, useFragment } from 'react-relay';
+import { NftDetailTextFragment$key } from '../../../__generated__/NftDetailTextFragment.graphql';
+import { NftDetailTextOwnerLinkFragment$key } from '../../../__generated__/NftDetailTextOwnerLinkFragment.graphql';
 
 type Props = {
-  nft: Nft;
+  nftRef: NftDetailTextFragment$key;
 };
 
-function NftDetailText({ nft }: Props) {
-  const currentOwner = useMemo((): Owner => {
-    const owners = nft.ownership_history?.owners;
-    return owners?.length > 0 ? owners[0] : {};
-  }, [nft]);
+function NftDetailText({ nftRef }: Props) {
+  // const currentOwner = useMemo((): Owner => {
+  //   const owners = nft.ownership_history?.owners;
+  //   return owners?.length > 0 ? owners[0] : {};
+  // }, [nft]);
+
+  const nft = useFragment(
+    graphql`
+      fragment NftDetailTextFragment on NftInterface {
+        __typename
+        name
+        tokenCollectionName
+        description
+        creatorName
+        creatorAddress
+        ...NftDetailTextOwnerLinkFragment
+        ...NftAdditionalDetailsFragment
+      }
+    `,
+    nftRef
+  );
 
   const breakpoint = useBreakpoint();
   const horizontalLayout = breakpoint === size.desktop || breakpoint === size.tablet;
@@ -28,30 +47,50 @@ function NftDetailText({ nft }: Props) {
     <StyledDetailLabel horizontalLayout={horizontalLayout}>
       <Heading>{nft.name}</Heading>
       <Spacer height={16} />
-      <BodyRegular>{nft.token_collection_name}</BodyRegular>
+      <BodyRegular>{nft.tokenCollectionName}</BodyRegular>
       <Spacer height={16} />
       <StyledNftDescription color={colors.gray50}>
-        <Markdown text={nft.description} />
+        <Markdown text={nft.description ?? ''} />
       </StyledNftDescription>
       <Spacer height={32} />
       <BodyRegular color={colors.gray50}>Owned By</BodyRegular>
-      <NftOwnerLink owner={currentOwner} ownerAddress={nft.owner_address} />
+      {/* <NftOwnerLink owner={currentOwner} ownerAddress={nft.owner_address} /> */}
+      <NftOwnerLink nftRef={nft} />
       <Spacer height={16} />
       <BodyRegular color={colors.gray50}>Created By</BodyRegular>
-      <BodyRegular>{nft.creator_name || nft.creator_address}</BodyRegular>
+      <BodyRegular>{nft.creatorName ?? nft.creatorAddress}</BodyRegular>
       <Spacer height={32} />
-      <NftAdditionalDetails nft={nft} />
+      <NftAdditionalDetails nftRef={nft} />
     </StyledDetailLabel>
   );
 }
 
 type NftOwnerProps = {
-  owner: Owner;
-  ownerAddress: string;
+  nftRef: NftDetailTextOwnerLinkFragment$key;
+  // owner: Owner;
+  // ownerAddress: string;
 };
 
-function NftOwnerLink({ owner, ownerAddress }: NftOwnerProps) {
-  if (owner.username) {
+function NftOwnerLink({ nftRef }: NftOwnerProps) {
+  const { owner } = useFragment(
+    graphql`
+      fragment NftDetailTextOwnerLinkFragment on NftInterface {
+        owner {
+          __typename
+          ... on Wallet {
+            address
+          }
+          ... on GalleryUser {
+            username
+          }
+        }
+      }
+    `,
+    nftRef
+  );
+
+  // if (owner.username) {
+  if (owner?.__typename === 'GalleryUser') {
     return (
       <StyledLink href={`/${owner.username}`}>
         <BodyRegular>{owner.username}</BodyRegular>
@@ -60,13 +99,21 @@ function NftOwnerLink({ owner, ownerAddress }: NftOwnerProps) {
   }
 
   // use the ownership_history owner's address, fallback to the nft owner address
-  const address = owner?.address ?? ownerAddress;
+  // const address = owner?.address ?? ownerAddress;
+  if (owner?.__typename === 'Wallet') {
+    return (
+      <StyledLink
+        href={`https://etherscan.io/address/${owner.address}`}
+        target="_blank"
+        rel="noreferrer"
+      >
+        <BodyRegular>{owner.address}</BodyRegular>
+      </StyledLink>
+    );
+  }
 
-  return (
-    <StyledLink href={`https://etherscan.io/address/${address}`} target="_blank" rel="noreferrer">
-      <BodyRegular>{address}</BodyRegular>
-    </StyledLink>
-  );
+  // TODO: pair with team to better understand fallbacks requirments
+  return null;
 }
 
 const StyledDetailLabel = styled.div<{ horizontalLayout: boolean }>`

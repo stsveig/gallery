@@ -4,26 +4,56 @@ import styled from 'styled-components';
 import breakpoints, { pageGutter } from 'components/core/breakpoints';
 import ActionText from 'components/core/ActionText/ActionText';
 
-import useNft from 'hooks/api/nfts/useNft';
+// import useNft from 'hooks/api/nfts/useNft';
 import Page from 'components/core/Page/Page';
 import ShimmerProvider from 'contexts/shimmer/ShimmerContext';
-import GalleryRedirect from 'scenes/_Router/GalleryRedirect';
+// import GalleryRedirect from 'scenes/_Router/GalleryRedirect';
 import NftDetailAsset from './NftDetailAsset';
 import NftDetailText from './NftDetailText';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useCanGoBack } from 'contexts/navigation/GalleryNavigationProvider';
 
+import { graphql, useFragment } from 'react-relay';
+import { NftDetailPageFragment$key } from '../../../__generated__/NftDetailPageFragment.graphql';
+
 type Props = {
-  nftId: string;
+  nftRef: NftDetailPageFragment$key;
 };
 
-function NftDetailPage({ nftId }: Props) {
+function NftDetailPage({ nftRef }: Props) {
   const { replace, back, query } = useRouter();
   const canGoBack = useCanGoBack();
 
-  const username = window.location.pathname.split('/')[1];
-  const collectionId = query.collectionId;
+  const collectionNft = useFragment(
+    graphql`
+      fragment NftDetailPageFragment on GalleryNft {
+        nft @required(action: THROW) {
+          __typename
+          ... on NftInterface {
+            name
+          }
+          ...NftDetailAssetFragment
+          ...NftDetailTextFragment
+        }
+        collection {
+          id
+          gallery {
+            owner {
+              username
+            }
+          }
+        }
+      }
+    `,
+    nftRef
+  );
+
+  const username =
+    collectionNft?.collection?.gallery?.owner?.username ?? window.location.pathname.split('/')[1];
+
+  const collectionId = collectionNft?.collection?.id ?? query.collectionId;
+
   // TODO: Should refactor to utilize navigation context instead of session storage
   const isFromCollectionPage =
     globalThis?.sessionStorage?.getItem('prevPage') === `/${username}/${collectionId}`;
@@ -50,12 +80,19 @@ function NftDetailPage({ nftId }: Props) {
     [back, canGoBack, replace, username]
   );
 
-  const nft = useNft({ id: nftId ?? '' });
-  const headTitle = useMemo(() => `${nft?.name} - ${username} | Gallery`, [nft, username]);
+  // const nft = useNft({ id: nftId ?? '' });
 
-  if (!nft) {
-    return <GalleryRedirect to="/404" />;
-  }
+  const headTitle = useMemo(
+    () =>
+      collectionNft.nft.name
+        ? `${collectionNft.nft.name} - ${username} | Gallery`
+        : `${username} | Gallery`,
+    [collectionNft.nft.name, username]
+  );
+
+  // if (!nft) {
+  // return <GalleryRedirect to="/404" />;
+  // }
 
   return (
     <>
@@ -79,9 +116,9 @@ function NftDetailPage({ nftId }: Props) {
         )} */}
           <StyledContentContainer>
             <ShimmerProvider>
-              <NftDetailAsset nft={nft} />
+              <NftDetailAsset nftRef={collectionNft.nft} />
             </ShimmerProvider>
-            <NftDetailText nft={nft} />
+            <NftDetailText nftRef={collectionNft.nft} />
           </StyledContentContainer>
           {/* {nextNftId && (
           <NavigationHandle

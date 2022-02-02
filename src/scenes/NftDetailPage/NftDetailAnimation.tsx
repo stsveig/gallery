@@ -1,17 +1,30 @@
 import { useSetContentIsLoaded } from 'contexts/shimmer/ShimmerContext';
 import styled from 'styled-components';
-import { Nft } from 'types/Nft';
+// import { Nft } from 'types/Nft';
+
+import { graphql, useFragment } from 'react-relay';
+import { NftDetailAnimationFragment$key } from '../../../__generated__/NftDetailAnimationFragment.graphql';
 
 type Props = {
-  nft: Nft;
+  nftRef: NftDetailAnimationFragment$key;
 };
 
-function NftDetailAnimation({ nft }: Props) {
+function NftDetailAnimation({ nftRef }: Props) {
   const setContentIsLoaded = useSetContentIsLoaded();
+
+  const { iframeUrl } = useFragment(
+    graphql`
+      fragment NftDetailAnimationFragment on IFrameNft {
+        __typename
+        iframeUrl
+      }
+    `,
+    nftRef
+  );
 
   return (
     <StyledNftDetailAnimation>
-      <StyledIframe src={nft.animation_url} onLoad={setContentIsLoaded} />
+      <StyledIframe src={iframeUrl ?? ''} onLoad={setContentIsLoaded} />
     </StyledNftDetailAnimation>
   );
 }

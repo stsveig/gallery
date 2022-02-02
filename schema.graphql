@@ -20,6 +20,10 @@ type Wallet implements Node {
   nfts: [Nft]
 }
 
+type AssetContractInfo {
+  address: String
+}
+
 union AddressOrGalleryUser = GalleryUser | Wallet
 
 interface NftInterface implements Node {
@@ -27,6 +31,13 @@ interface NftInterface implements Node {
   name: String
   tokenCollectionName: String
   owner: AddressOrGalleryUser
+  description: String
+  creatorName: String
+  creatorAddress: String
+  assetContract: AssetContractInfo
+  openseaTokenId: String
+  openseaExternalUrl: String
+  externalUrl: String
 }
 
 type ImageNft implements NftInterface & Node {
@@ -34,7 +45,18 @@ type ImageNft implements NftInterface & Node {
   name: String
   tokenCollectionName: String
   owner: AddressOrGalleryUser
+
   imageUrl: String
+}
+
+type AudioNft implements NftInterface & Node {
+  id: ID!
+  name: String
+  tokenCollectionName: String
+  owner: AddressOrGalleryUser
+
+  imageUrl: String
+  audioUrl: String
 }
 
 type VideoNft implements NftInterface & Node {
@@ -42,9 +64,30 @@ type VideoNft implements NftInterface & Node {
   name: String
   tokenCollectionName: String
   owner: AddressOrGalleryUser
+
+  videoUrl: String
 }
 
-union Nft = ImageNft | VideoNft
+type IFrameNft implements NftInterface & Node {
+  id: ID!
+  name: String
+  tokenCollectionName: String
+  owner: AddressOrGalleryUser
+
+  iframeUrl: String
+}
+
+type ThreeDModelNft implements NftInterface & Node {
+  id: ID!
+  name: String
+  tokenCollectionName: String
+  owner: AddressOrGalleryUser
+
+  # Something ending in .glb
+  modelUrl: String
+}
+
+union Nft = ImageNft | AudioNft | VideoNft | IFrameNft | ThreeDModelNft
 
 type GalleryNft {
   id: ID!
@@ -138,6 +181,8 @@ union ViewerPayload = Viewer | MissingCookie | SessionExpired
 
 union GalleryByUserPayload = GalleryUser | NotFound
 
+union NftByIdPayload = GalleryNft | NotFound
+
 union NftMintCardPayload = MembershipNftMintCard | NotFound
 
 type Query {
@@ -145,6 +190,7 @@ type Query {
   viewer: ViewerPayload
   userByUsername(username: String): GalleryByUserPayload
   membershipTiers: [MembershipTier]
+  nftById(nftId: String): NftByIdPayload
   membershipNftByTitle(title: String): NftMintCardPayload
 }
 
