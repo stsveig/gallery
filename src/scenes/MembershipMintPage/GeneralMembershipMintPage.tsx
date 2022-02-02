@@ -1,21 +1,25 @@
 import { Web3Provider } from '@ethersproject/providers';
 import { MembershipMintPage } from 'scenes/MembershipMintPage/MembershipMintPage';
 import { useWeb3React } from '@web3-react/core';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback } from 'react';
 
 import {
-  GENERAL_MEMBERSHIP_CONRTACT_ADDRESS,
+  // GENERAL_MEMBERSHIP_CONRTACT_ADDRESS,
   useGeneralMembershipCardContract,
 } from 'hooks/useContract';
 
 import MerkleTree from './MerkleTree';
 import { Contract } from '@ethersproject/contracts';
 
-import MembershipMintPageProvider, {
-  useMembershipMintPageActions,
-} from 'contexts/membershipMintPage/MembershipMintPageContext';
-import { MEMBERSHIP_NFT_GENERAL } from './cardProperties';
-import { getAllowlist } from './GeneralCardAllowlist';
+import { graphql, useRefetchableFragment } from 'react-relay';
+import { GeneralMembershipMintPageFragment$key } from '../../../__generated__/GeneralMembershipMintPageFragment.graphql';
+import { removeNullValues } from 'utils/removeNullValues';
+
+// import MembershipMintPageProvider, {
+// useMembershipMintPageActions,
+// } from 'contexts/membershipMintPage/MembershipMintPageContext';
+// import { MEMBERSHIP_NFT_GENERAL } from './cardProperties';
+// import { getAllowlist } from './GeneralCardAllowlist';
 
 export type AssetContract = {
   address: string;
@@ -25,52 +29,70 @@ export type OpenseaAsset = {
   asset_contract: AssetContract;
 };
 
-const OPENSEA_API_BASEURL = process.env.NEXT_PUBLIC_OPENSEA_API_BASEURL ?? 'https://api.opensea.io';
+// const OPENSEA_API_BASEURL = process.env.NEXT_PUBLIC_OPENSEA_API_BASEURL ?? 'https://api.opensea.io';
 
 function generateMerkleProof(address: string, allowlist: string[]) {
   const merkleTree = new MerkleTree(allowlist);
   return merkleTree.getHexProof(address);
 }
 
-async function detectOwnedGeneralCardsFromOpensea(account: string) {
-  const response = await fetch(
-    `${OPENSEA_API_BASEURL}/api/v1/assets?owner=${account}&asset_contract_addresses=${GENERAL_MEMBERSHIP_CONRTACT_ADDRESS}`,
-    {}
-  );
+// async function detectOwnedGeneralCardsFromOpensea(account: string) {
+//   const response = await fetch(
+//     `${OPENSEA_API_BASEURL}/api/v1/assets?owner=${account}&asset_contract_addresses=${GENERAL_MEMBERSHIP_CONRTACT_ADDRESS}`,
+//     {}
+//   );
 
-  const responseBody = await response.json();
-  return responseBody.assets.length > 0;
-}
+//   const responseBody = await response.json();
+//   return responseBody.assets.length > 0;
+// }
 
-function GeneralMembershipMintPageContent() {
+type Props = {
+  membershipNftRef: GeneralMembershipMintPageFragment$key;
+};
+
+function GeneralMembershipMintPage({ membershipNftRef }: Props) {
   const { account } = useWeb3React<Web3Provider>();
   const contract = useGeneralMembershipCardContract();
 
-  const { getSupply } = useMembershipMintPageActions();
+  // const { getSupply } = useMembershipMintPageActions();
 
-  const [ownsGeneralCard, setOwnsGeneralCard] = useState(false);
+  // const [ownsGeneralCard, setOwnsGeneralCard] = useState(false);
 
-  const allowlist = getAllowlist();
-  const onAllowList = useMemo(
-    () => Boolean(account) && allowlist.includes(account!.toLowerCase()),
-    [account, allowlist]
+  const [membershipNft, refresh] = useRefetchableFragment(
+    graphql`
+      fragment GeneralMembershipMintPageFragment on MembershipNftMintCard
+      @refetchable(queryName: "GeneralMemberhsipMintPageRefresh") {
+        __typename
+        allowlist @required(action: THROW)
+        ...MembershipMintPageFragment
+      }
+    `,
+    membershipNftRef
   );
 
-  const canMintToken = useMemo(
-    () => !ownsGeneralCard && onAllowList,
-    [onAllowList, ownsGeneralCard]
-  );
+  const allowlist = removeNullValues(membershipNft.allowlist);
 
-  useEffect(() => {
-    async function checkIfUserCanMint(account: string) {
-      const generalCardDetectedInAccount = await detectOwnedGeneralCardsFromOpensea(account);
-      setOwnsGeneralCard(generalCardDetectedInAccount);
-    }
+  // const allowlist = getAllowlist();
+  // const onAllowList = useMemo(
+  //   () => Boolean(account) && allowlist.includes(account!.toLowerCase()),
+  //   [account, allowlist]
+  // );
 
-    if (account) {
-      void checkIfUserCanMint(account);
-    }
-  }, [account]);
+  // const canMintToken = useMemo(
+  //   () => !ownsGeneralCard && onAllowList,
+  //   [onAllowList, ownsGeneralCard]
+  // );
+
+  // useEffect(() => {
+  //   async function checkIfUserCanMint(account: string) {
+  //     const generalCardDetectedInAccount = await detectOwnedGeneralCardsFromOpensea(account);
+  //     setOwnsGeneralCard(generalCardDetectedInAccount);
+  //   }
+
+  //   if (account) {
+  //     void checkIfUserCanMint(account);
+  //   }
+  // }, [account]);
 
   const mintToken = useCallback(
     async (contract: Contract, tokenId: number) => {
@@ -83,19 +105,20 @@ function GeneralMembershipMintPageContent() {
   );
 
   const onMintSuccess = useCallback(async () => {
-    setOwnsGeneralCard(true);
-  }, []);
+    // setOwnsGeneralCard(true);
+    refresh({});
+  }, [refresh]);
 
-  useEffect(() => {
-    if (contract) {
-      getSupply(contract, MEMBERSHIP_NFT_GENERAL.tokenId);
-    }
-  }, [getSupply, contract]);
+  // useEffect(() => {
+  //   if (contract) {
+  //     getSupply(contract, MEMBERSHIP_NFT_GENERAL.tokenId);
+  //   }
+  // }, [getSupply, contract]);
 
   return (
     <MembershipMintPage
-      membershipNft={MEMBERSHIP_NFT_GENERAL}
-      canMintToken={canMintToken}
+      membershipNftRef={membershipNft}
+      // canMintToken={canMintToken}
       contract={contract}
       mintToken={mintToken}
       onMintSuccess={onMintSuccess}
@@ -103,12 +126,12 @@ function GeneralMembershipMintPageContent() {
   );
 }
 
-function GeneralMembershipMintPage() {
-  return (
-    <MembershipMintPageProvider>
-      <GeneralMembershipMintPageContent />
-    </MembershipMintPageProvider>
-  );
-}
+// function GeneralMembershipMintPage() {
+//   return (
+//     <MembershipMintPageProvider>
+//       <GeneralMembershipMintPageContent />
+//     </MembershipMintPageProvider>
+//   );
+// }
 
 export default GeneralMembershipMintPage;

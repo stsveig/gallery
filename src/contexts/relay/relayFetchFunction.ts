@@ -7,7 +7,13 @@ import { MembershipTier } from 'types/MembershipTier';
  * Since we don't currently have a GraphQL server, we're shimming a response as
  * an example.
  */
-export const relayFetchFunction: FetchFunction = async (request) => {
+
+/**
+ * make the response nice & real
+ */
+import { MEMBERSHIP_NFT_GOLD } from 'scenes/MembershipMintPage/cardProperties';
+
+export const relayFetchFunction: FetchFunction = async (request, variables) => {
   if (request.name === 'membersQuery') {
     const response = await _fetch<{ tiers: MembershipTier[] }>('/users/membership', 'some action');
 
@@ -29,6 +35,36 @@ export const relayFetchFunction: FetchFunction = async (request) => {
               previewNfts: owner.preview_nfts,
             })),
         })),
+      },
+    };
+  }
+
+  if (request.name === 'goldQuery') {
+    // console.log(variables);
+    return {
+      data: {
+        membershipNftByTitle: {
+          __typename: 'MembershipNftMintCard',
+          ...MEMBERSHIP_NFT_GOLD,
+          id: 'gold',
+          price: '50000000000000000',
+          canMintToken: true,
+          totalSupply: 500,
+          remainingSupply: 500,
+        },
+      },
+    };
+  }
+
+  // response from using refresh() useRefetchableFragment (@refetchable)
+  if (request.name === 'PremiumMembershipMintPageRefresh') {
+    return {
+      data: {
+        node: {
+          // __typename:
+          // ...MEMBERSHIP_NFT_GOLD,
+          //
+        },
       },
     };
   }

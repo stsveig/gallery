@@ -98,6 +98,26 @@ type SessionExpired {
   message: String!
 }
 
+# type allowlistItem {
+# address: String
+# }
+
+type MembershipNftMintCard implements Node {
+  id: ID!
+  title: String
+  description: String
+  totalSupply: Int
+  remainingSupply: Int
+  canMintToken: Boolean
+  videoUrl: String
+  price: String
+  tokenId: Int
+
+  allowlist: [String]
+  # merkleProof: [String]
+  isFeatureEnabled: Boolean
+}
+
 type MissingCookie {
   message: String!
 }
@@ -118,10 +138,14 @@ union ViewerPayload = Viewer | MissingCookie | SessionExpired
 
 union GalleryByUserPayload = GalleryUser | NotFound
 
+union NftMintCardPayload = MembershipNftMintCard | NotFound
+
 type Query {
+  node(id: ID!): Node
   viewer: ViewerPayload
   userByUsername(username: String): GalleryByUserPayload
   membershipTiers: [MembershipTier]
+  membershipNftByTitle(title: String): NftMintCardPayload
 }
 
 input GalleryCollectionLayoutInput {
@@ -195,7 +219,7 @@ type Mutation {
   deleteCollection(collectionId: Int): DeleteCollectionPayload
   updateCollectionInfo(input: UpdateCollectionInfoInput!): UpdateCollectionInfoPayload
   updateCollectionNfts(input: UpdateCollectionNftsInput!): UpdateCollectionNftsPayload
-  updateCollectionNfts(input: UpdateCollectionNftsInput!): UpdateCollectionNftsPayload
+  # updateCollectionNfts(input: UpdateCollectionNftsInput!): UpdateCollectionNftsPayload
 
   # Gallery Mutations
   updateGalleryCollections(input: UpdateGalleryCollectionsInput): UpdateGalleryCollectionsPayload

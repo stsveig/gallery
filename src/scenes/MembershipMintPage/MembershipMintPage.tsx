@@ -15,16 +15,19 @@ import colors from 'components/core/colors';
 import { useWeb3React } from '@web3-react/core';
 import useWalletModal from 'hooks/useWalletModal';
 import { useModal } from 'contexts/modal/ModalContext';
-import {
-  useMembershipMintPageActions,
-  useMembershipMintPageState,
-} from 'contexts/membershipMintPage/MembershipMintPageContext';
+// import {
+// useMembershipMintPageActions,
+// useMembershipMintPageState,
+// } from 'contexts/membershipMintPage/MembershipMintPageContext';
 import { Contract } from '@ethersproject/contracts';
-import { MembershipNft } from './cardProperties';
+// import { MembershipNft } from './cardProperties';
+import { graphql, useFragment } from 'react-relay';
+import { MembershipMintPageFragment$key } from '../../../__generated__/MembershipMintPageFragment.graphql';
 
 type Props = {
-  membershipNft: MembershipNft;
-  canMintToken: boolean;
+  membershipNftRef: MembershipMintPageFragment$key;
+  // membershipNft: MembershipNft;
+  // canMintToken: boolean;
   contract: Contract | null;
   mintToken: (contract: Contract, tokenId: number) => Promise<any>;
   children?: ReactNode;
@@ -38,8 +41,9 @@ enum TransactionStatus {
 }
 
 export function MembershipMintPage({
-  membershipNft,
-  canMintToken,
+  membershipNftRef,
+  // membershipNft,
+  // canMintToken,
   contract,
   mintToken,
   children,
@@ -51,10 +55,35 @@ export function MembershipMintPage({
   const { hideModal } = useModal();
   const [error, setError] = useState('');
 
-  const { totalSupply, remainingSupply, price } = useMembershipMintPageState();
-  const [transactionStatus, setTransactionStatus] = useState<TransactionStatus | null>(null);
+  // const { totalSupply, remainingSupply, price } = useMembershipMintPageState();
   const [transactionHash, setTransactionHash] = useState('');
-  const { getSupply } = useMembershipMintPageActions();
+  const [transactionStatus, setTransactionStatus] = useState<TransactionStatus | null>(null);
+  // const { getSupply } = useMembershipMintPageActions();
+
+  const {
+    title,
+    description,
+    totalSupply,
+    remainingSupply,
+    canMintToken,
+    videoUrl,
+    price,
+    tokenId,
+  } = useFragment(
+    graphql`
+      fragment MembershipMintPageFragment on MembershipNftMintCard {
+        title
+        price
+        description
+        totalSupply
+        canMintToken
+        remainingSupply
+        tokenId @required(action: THROW)
+        videoUrl @required(action: THROW)
+      }
+    `,
+    membershipNftRef
+  );
 
   const buttonText = useMemo(() => {
     if (!active) {
@@ -92,7 +121,7 @@ export function MembershipMintPage({
     if (active && contract) {
       // Submit mint transaction
       setTransactionStatus(TransactionStatus.PENDING);
-      const mintResult = await mintToken(contract, membershipNft.tokenId).catch((error: any) => {
+      const mintResult = await mintToken(contract, tokenId).catch((error: any) => {
         setError(`Error while calling contract - "${error?.error?.message ?? error?.message}"`);
         setTransactionStatus(TransactionStatus.FAILED);
       });
@@ -113,7 +142,8 @@ export function MembershipMintPage({
         });
         if (waitResult) {
           setTransactionStatus(TransactionStatus.SUCCESS);
-          getSupply(contract, membershipNft.tokenId);
+          // TODO: both of our parents refreshing this data already? if they are, we don't need this, this is probably a double fetch
+          // getSupply(contract, tokenId);
 
           if (onMintSuccess) {
             onMintSuccess();
@@ -121,7 +151,7 @@ export function MembershipMintPage({
         }
       }
     }
-  }, [active, contract, error, getSupply, membershipNft.tokenId, mintToken, onMintSuccess]);
+  }, [active, contract, error, tokenId, mintToken, onMintSuccess]);
 
   // auto close the wallet modal once user connects
   useEffect(() => {
@@ -133,30 +163,39 @@ export function MembershipMintPage({
   return (
     <StyledMintPage centered>
       <StyledContent>
-        <MembershipNftVisual src={membershipNft.videoUrl} />
+        <MembershipNftVisual src={videoUrl} />
         <StyledDetailText>
-          <Heading>{membershipNft.title}</Heading>
+          <Heading>{title}</Heading>
           <Spacer height={16} />
-          <StyledNftDescription color={colors.gray50}>
-            <Markdown text={membershipNft.description} />
-          </StyledNftDescription>
-          <Spacer height={32} />
-          {Number(price) > 0 && (
+
+          {description && (
             <>
-              <BodyRegular color={colors.gray50}>Price</BodyRegular>
-              <BodyRegular>{Number(price / 1000000000000000000)} ETH</BodyRegular>
+              <StyledNftDescription color={colors.gray50}>
+                <Markdown text={description} />
+              </StyledNftDescription>
+              <Spacer height={32} />
             </>
           )}
-          <Spacer height={16} />
-          {Boolean(totalSupply) && (
+
+          {price && (
+            <>
+              <BodyRegular color={colors.gray50}>Price</BodyRegular>
+              <BodyRegular>{Number(Number(price) / 1000000000000000000)} ETH</BodyRegular>
+              <Spacer height={16} />
+            </>
+          )}
+
+          {totalSupply && remainingSupply && (
             <>
               <BodyRegular color={colors.gray50}>Available</BodyRegular>
               <BodyRegular>
-                {membershipNft.tokenId === 6 ? 0 : remainingSupply}/{totalSupply}
+                {tokenId === 6 ? 0 : remainingSupply}/{totalSupply}
               </BodyRegular>
             </>
           )}
+
           {children}
+
           {account && (
             <>
               <Spacer height={16} />
